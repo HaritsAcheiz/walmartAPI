@@ -99,11 +99,51 @@ class WalmartAPI:
         return response.json()
 
 
+    def update_lag_time(self, skus, fulfillment_lag_time, feed_type='lagtime'):
+        endpoint = '/v3/feeds'
+        url = urljoin(self.base_url, endpoint)
+
+        headers = {
+            'WM_SEC.ACCESS_TOKEN': self.access_token
+        }
+
+        params = {
+            'feedType': feed_type
+        }
+
+        self.client.headers.update(headers)
+        lag_time = list()
+        for sku in skus:
+            lag_time.append({"sku": sku, "fulfillmentLagTime": fulfillment_lag_time})
+
+        json_data = {"LagTimeHeader": {"version": "1.0"}, "lagTime": lag_time}
+        payload = json.dumps(json_data).encode('utf-8')
+
+        breakout = False
+        while not breakout:
+            response = self.client.post(url, params=params, data=payload)
+            breakout = self.handle_response(response)
+
+        return response.json()
 
 
+    def get_feed_info(self, feed_id):
 
+        endpoint = f'/v3/feeds/{feed_id}'
+        url = urljoin(self.base_url, endpoint)
+        headers = {
+            'WM_SEC.ACCESS_TOKEN': self.access_token,
+        }
 
+        params = {
+            'includeDetails': "true"
+        }
 
+        self.client.headers.update(headers)
+        response = self.client.get(url, params=params)
+        if response.status_code != 200:
+            response.raise_for_status()
+        return response.json()
 
 
 if __name__ == '__main__':
@@ -113,17 +153,29 @@ if __name__ == '__main__':
         api.get_token()
 
         # get items
-        params = {
-            "limit": 50,
-            "nextCursor": "*",
-            "lifeCycleStatus": "ACTIVE"
-        }
+        # params = {
+        #     "limit": 50,
+        #     "nextCursor": "*",
+        #     "lifeCycleStatus": "ACTIVE"
+        # }
 
-        response = api.catalog_search(params=params)
+        # response = api.catalog_search(params=params)
+        # print(response)
+
+        # skus = list()
+        # for item in response['ItemResponse']:
+        #     skus.append(item['sku'])
+
+        # update lag time
+        # response = api.update_lag_time(skus, fulfillment_lag_time=3)
+        # print(response)
+
+        # get feed info
+        response = api.get_feed_info('17E8594D99AB5948AFAFEABD65AC35ED@AVQBCgA')
         print(response)
 
-    except:
-        pass
+    except Exception as e:
+        print(e)
 
     finally:
         # client close
